@@ -3,9 +3,8 @@ from Lookups import gmul,lookup,reverse_lookup,round_constant,mix_matrix,inv_mix
 import codecs
 class AES():
     key = None
-    def __init__(self,key:str,iv:str):
+    def __init__(self,key:str):
         self.keys = self._expand_key(bytearray.fromhex(key))
-        self.iv = bytearray.fromhex(iv)
 
     def _expand_key(self,key):
         keys = np.zeros(shape=(11, 4, 4), dtype="uint8")
