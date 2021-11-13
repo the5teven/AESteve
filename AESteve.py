@@ -1,10 +1,13 @@
 import numpy as np
+from multiprocessing import Pool
 from Lookups import gmul,lookup,reverse_lookup,round_constant,mix_matrix,inv_mix_matrix
 import codecs
+
 class AES():
     def __init__(self,key:str):
         self.key = bytearray.fromhex(key)
         self.keys = self._expand_key(bytearray.fromhex(key))
+
     def _expand_key(self,key):
         keys = np.zeros(shape=(11, 4, 4), dtype="uint8")
         keys[0] = np.array([i for i in key], "uint8").reshape((4, 4))
@@ -25,7 +28,6 @@ class AES():
 
                 keys[k + 1][i] = (t1, t2, t3, t4)
         return (keys)
-
     def _pad(self,message:bytearray):
         message.append(0x80)
         while len(message)%16 != 0:
@@ -98,36 +100,46 @@ class AES():
                 temp[j,i] = temp[j,i] ^ gmul(inv_mix_matrix[i,k],block_T[k,j])
         return temp
 
-    def _encrypt_block(self,block, keys):
-        temp = self._add_round_key(keys[0], block)
+    def _encrypt_block(self,block):
+        temp = self._add_round_key(self.keys[0], block)
         for i in range(9):
             temp = self._sub_bytes(temp)
             temp = self._shift_rows(temp)
             temp = self._mix_colums(temp)
-            temp = self._add_round_key(keys[i+1],temp)
+            temp = self._add_round_key(self.keys[i+1],temp)
         temp = self._sub_bytes(temp)
         temp = self._shift_rows(temp)
-        temp = self._add_round_key(keys[10], temp)
+        temp = self._add_round_key(self.keys[10], temp)
         return temp
 
-    def _dencrypt_block(self,block, keys):
-        temp = self._add_round_key(keys[10], block)
+    def _decrypt_block(self,block):
+        temp = self._add_round_key(self.keys[10], block)
         temp = self._inv_shift_rows(temp)
         temp = self._inv_sub_bytes(temp)
         for i in range(9):
-            temp = self._add_round_key(keys[9 - i], temp)
+            temp = self._add_round_key(self.keys[9 - i], temp)
             temp = self._inv_mix_colums(temp)
             temp = self._inv_shift_rows(temp)
             temp = self._inv_sub_bytes(temp)
-        temp = self._add_round_key(keys[0], temp)
+        temp = self._add_round_key(self.keys[0], temp)
         return temp
+
     def encrypt(self,message:str):
         blocks = self._make_blocks(self._pad(bytearray(message)))
-        for i,block in enumerate(blocks):
-            blocks[i] = self._encrypt_block(block,self.keys)
+        p = Pool()
+        results = p.map(self._encrypt_block,blocks)
+        p.close()
+        p.join()
+        for i, result in enumerate(results):
+            blocks[i] = result
         return codecs.encode(codecs.decode(bytearray(blocks.flatten().tolist()).hex(),"HEX"),"base64")
+
     def decrypt(self,message:str):
         blocks = self._make_blocks(bytearray(codecs.decode(message,"base64")))
-        for i, block in enumerate(blocks):
-            blocks[i] = self._dencrypt_block(block, self.keys)
+        p = Pool()
+        results = p.map(self._decrypt_block, blocks)
+        p.close()
+        p.join()
+        for i, result in enumerate(results):
+            blocks[i] = result
         return bytes(self._depad(bytearray(blocks.flatten().tolist())))
