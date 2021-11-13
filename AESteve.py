@@ -2,10 +2,9 @@ import numpy as np
 from Lookups import gmul,lookup,reverse_lookup,round_constant,mix_matrix,inv_mix_matrix
 import codecs
 class AES():
-    key = None
     def __init__(self,key:str):
+        self.key = bytearray.fromhex(str)
         self.keys = self._expand_key(bytearray.fromhex(key))
-
     def _expand_key(self,key):
         keys = np.zeros(shape=(11, 4, 4), dtype="uint8")
         keys[0] = np.array([i for i in key], "uint8").reshape((4, 4))
