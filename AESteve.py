@@ -1,10 +1,12 @@
 import numpy as np
 from Lookups import gmul,lookup,reverse_lookup,round_constant,mix_matrix,inv_mix_matrix
 import codecs
+
 class AES():
     def __init__(self,key:str):
         self.key = bytearray.fromhex(key)
         self.keys = self._expand_key(bytearray.fromhex(key))
+        
     def _expand_key(self,key):
         keys = np.zeros(shape=(11, 4, 4), dtype="uint8")
         keys[0] = np.array([i for i in key], "uint8").reshape((4, 4))
@@ -22,7 +24,6 @@ class AES():
                     t2 = keys[k][i][1] ^ keys[k + 1][i-1][1]
                     t3 = keys[k][i][2] ^ keys[k + 1][i-1][2]
                     t4 = keys[k][i][3] ^ keys[k + 1][i-1][3]
-
                 keys[k + 1][i] = (t1, t2, t3, t4)
         return (keys)
 
@@ -31,9 +32,10 @@ class AES():
         while len(message)%16 != 0:
             message.append(0)
         return message
+    
     def _depad(self,message:bytearray):
         return message[:message.rindex(0x80)]
-
+    
     def _make_blocks(self,message:bytearray):
         message_block = np.array([i for i in message], "uint8").reshape((len(message) // 16,4, 4))
         return message_block
@@ -51,6 +53,7 @@ class AES():
             for r in range(4):
                 temp[c][r] = lookup(block[c][r])
         return temp
+    
     def _inv_sub_bytes(self,block:np.array):
         temp = np.zeros(shape=(4, 4), dtype="uint8")
         for c in range(4):
@@ -121,11 +124,13 @@ class AES():
             temp = self._inv_sub_bytes(temp)
         temp = self._add_round_key(keys[0], temp)
         return temp
+    
     def encrypt(self,message:str):
         blocks = self._make_blocks(self._pad(bytearray(message)))
         for i,block in enumerate(blocks):
             blocks[i] = self._encrypt_block(block,self.keys)
         return codecs.encode(codecs.decode(bytearray(blocks.flatten().tolist()).hex(),"HEX"),"base64")
+    
     def dencrypt(self,message:str):
         blocks = self._make_blocks(bytearray(codecs.decode(message,"base64")))
         for i, block in enumerate(blocks):
