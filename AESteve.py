@@ -3,7 +3,7 @@ from Lookups import gmul,lookup,reverse_lookup,round_constant,mix_matrix,inv_mix
 import codecs
 class AES():
     def __init__(self,key:str):
-        self.key = bytearray.fromhex(str)
+        self.key = bytearray.fromhex(key)
         self.keys = self._expand_key(bytearray.fromhex(key))
     def _expand_key(self,key):
         keys = np.zeros(shape=(11, 4, 4), dtype="uint8")
